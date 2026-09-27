@@ -1,31 +1,74 @@
+<div align="center">
+
+<img src="assets/project-cover.svg" alt="Backup Sentinel — verified local snapshot backups by Radwan Abd alhady Ahmed" width="100%" />
+
+<br/>
+
+<img src="assets/project-logo.svg" alt="Backup Sentinel logo" width="104" />
+
 # Backup Sentinel
 
-Safe, local, versioned directory backups with SHA-256 verification and guarded restore.
+**Verification-first local backups with versioned snapshots and guarded restore.**
 
-**Author:** Radwan Abdulhadi Ahmed · رضوان عبدالهادي أحمد · GitHub: @rad03i2
+<div dir="rtl">
+<strong>نسخ احتياطية محلية بلقطات مستقلة، تحقق SHA-256، واستعادة محمية من الكتابة غير المقصودة.</strong>
+</div>
 
-## English
+<br/>
 
-### Overview
-Backup Sentinel is a small, auditable Python backup tool for creating self-contained snapshots of a directory. Every file is hashed before copying and verified after copying. Each snapshot carries a JSON manifest, can be verified later, and can be restored only after passing integrity checks.
+[![CI](https://github.com/rad03i2/backup-sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/rad03i2/backup-sentinel/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.10%2B-59E39A?logo=python&logoColor=09110E)
+![Version](https://img.shields.io/badge/version-1.0.0-10271F)
+![License](https://img.shields.io/badge/license-MIT-F4B740)
+![Network](https://img.shields.io/badge/network-none-10271F)
 
-### Why it exists
-Backups should be boring and predictable. Backup Sentinel favors explicit commands, local storage, cryptographic integrity checks, and refusal to overwrite existing restore targets unless the user opts in.
+**[English guide](README_EN.md) · [الدليل العربي](README_AR.md) · [Architecture](docs/ARCHITECTURE.md) · [Brand](docs/BRAND.md) · [Security](SECURITY.md)**
 
-### Features
-- Versioned, timestamped snapshots; previous snapshots are never modified.
-- SHA-256 before/after copy verification.
-- `verify` detects missing or changed backup files.
-- Guarded restore refuses corrupted snapshots and existing destination files by default.
-- Atomic per-file restore through a temporary file followed by `os.replace`.
-- Hidden files are excluded by default and may be included explicitly.
-- Symbolic links are not followed.
-- Source and backup repository may not overlap, preventing recursive backups.
-- Machine-readable JSON output and a small Python API.
-- No network access, accounts, telemetry, or secrets.
+</div>
 
-### Requirements & installation
-Python 3.10+ is required.
+---
+
+## The promise
+
+Backup Sentinel is a compact Python CLI for creating self-contained directory snapshots that can be checked before they are trusted again.
+
+<table>
+<tr>
+<td width="33%"><strong>Snapshot, don't mutate</strong><br/><sub>Each backup is written into a new timestamped snapshot. Creating a new snapshot does not rewrite previous snapshots.</sub></td>
+<td width="33%"><strong>Verify what was copied</strong><br/><sub>Files are hashed with SHA-256 during scanning and checked again after copying into the snapshot.</sub></td>
+<td width="33%"><strong>Restore behind guardrails</strong><br/><sub>A snapshot must pass verification before restore, and existing destination files are protected unless overwrite is explicit.</sub></td>
+</tr>
+</table>
+
+Backup Sentinel stays deliberately local: no accounts, telemetry, remote API, cloud transport, or secret configuration is required.
+
+## Backup lifecycle
+
+```text
+source directory
+      │
+      ▼
+scan + SHA-256
+      │
+      ▼
+timestamped snapshot
+      │
+      ├── manifest.json
+      └── data/...
+      │
+      ▼
+post-copy verification
+      │
+      ▼
+verify any time
+      │
+      ▼
+guarded restore
+```
+
+## Quick start
+
+**Requirement:** Python 3.10 or newer.
 
 ```bash
 git clone https://github.com/rad03i2/backup-sentinel.git
@@ -33,57 +76,60 @@ cd backup-sentinel
 python -m pip install .
 ```
 
-For development:
-
-```bash
-python -m pip install -e ".[dev]"
-```
-
-### Usage
 Create a snapshot:
 
 ```bash
 backup-sentinel create ./important ./my-backups
 ```
 
-Include hidden files when needed:
-
-```bash
-backup-sentinel create ./important ./my-backups --include-hidden
-```
-
-List snapshots and copy a `snapshot_id`:
+List available snapshots:
 
 ```bash
 backup-sentinel list ./my-backups
 ```
 
-Verify before relying on a backup:
+Verify one before relying on it:
 
 ```bash
-backup-sentinel verify ./my-backups 20260920T100000.000000Z
+backup-sentinel verify ./my-backups <snapshot-id>
 ```
 
-Restore to an empty/new destination:
+Restore to a new or empty destination:
 
 ```bash
-backup-sentinel restore ./my-backups 20260920T100000.000000Z ./restored
+backup-sentinel restore ./my-backups <snapshot-id> ./restored
 ```
 
-Existing files are protected. Use `--overwrite` only when intentional.
+Existing destination files are not replaced unless `--overwrite` is supplied intentionally.
 
-### Python API
-```python
-from pathlib import Path
-from backup_sentinel import create_snapshot, verify_snapshot
+## Command surface
 
-manifest = create_snapshot(Path("important"), Path("backups"))
-status = verify_snapshot(Path("backups"), manifest["snapshot_id"])
-assert status["ok"]
-```
+| Command | Purpose | Important behavior |
+|---|---|---|
+| `create SOURCE REPOSITORY` | Create a new snapshot | Hidden files excluded by default; use `--include-hidden` to include them |
+| `list REPOSITORY` | List stored manifests | Returns JSON ordered by snapshot path |
+| `verify REPOSITORY SNAPSHOT_ID` | Check snapshot integrity | Reports missing and changed files; exits non-zero when verification fails |
+| `restore REPOSITORY SNAPSHOT_ID DESTINATION` | Restore verified data | Refuses corrupted snapshots and overwrite conflicts by default |
 
-### Repository format
-Each snapshot is self-contained:
+## What is protected
+
+- Source and backup repository paths cannot overlap.
+- Symbolic links are not followed.
+- Every copied backup file is checked against its source SHA-256.
+- Snapshot manifests are written atomically.
+- Restore verifies the full snapshot before copying.
+- Each restored file is copied to a temporary file, hashed, then promoted with `os.replace`.
+- Existing restore targets require explicit `--overwrite`.
+
+## Security boundary
+
+SHA-256 here is an **integrity check**, not encryption or authenticated storage. If an attacker can modify both backup data and its manifest, they can replace both consistently.
+
+Backup Sentinel does not encrypt backup contents. Protect the backup destination using filesystem permissions and, where appropriate, disk or volume encryption.
+
+Read the full model in [SECURITY.md](SECURITY.md).
+
+## Snapshot format
 
 ```text
 my-backups/
@@ -94,80 +140,11 @@ my-backups/
             └── ... original relative paths ...
 ```
 
-The manifest records relative path, byte size, and SHA-256 for every file.
+Each manifest stores the snapshot identifier, creation time, source path, file count, total bytes, and a relative path / size / SHA-256 record for every file.
 
-### Project structure
-```text
-src/backup_sentinel/core.py   backup, verification, restore engine
-src/backup_sentinel/cli.py    command-line interface
-src/backup_sentinel/__init__.py public API
-tests/test_backup.py          end-to-end safety tests
-.github/workflows/ci.yml      cross-platform CI
-```
+## Tests and CI
 
-### Testing
-```bash
-ruff check .
-pytest
-```
-CI runs the same checks on Ubuntu, Windows, and macOS with Python 3.10, 3.12, and 3.13.
-
-### Preview / screenshots
-This is intentionally a CLI utility. The JSON output from `create`, `list`, `verify`, and `restore` is the canonical preview and is suitable for scripts and terminals; no graphical UI is implemented.
-
-### Security & privacy
-All work is local. The tool does not encrypt backup contents, so protect the backup destination with appropriate OS permissions or disk encryption. SHA-256 detects corruption/tampering but is not authentication against an attacker who can modify both data and manifest. See `SECURITY.md`.
-
-### Limitations
-- Snapshots are full copies, not deduplicated or incremental.
-- No compression, encryption, remote/cloud transport, scheduler, or retention pruning is built in.
-- Files changing while a snapshot is being created may cause verification failure; retry after writes stop.
-- File metadata preservation is limited to what `shutil.copy2` and the host filesystem support.
-
-### Optional roadmap
-Content-addressed deduplication and explicit retention policies are reasonable future additions, provided the current safety model remains intact.
-
-### Contributing & license
-See `CONTRIBUTING.md`. Released under the MIT License; see `LICENSE`.
-
-### Author
-**Radwan Abdulhadi Ahmed**  
-**رضوان عبدالهادي أحمد**  
-GitHub: **@rad03i2**
-
----
-
-## العربية
-
-### نظرة عامة
-Backup Sentinel أداة بايثون محلية لإنشاء نسخ احتياطية بإصدارات مستقلة للمجلدات. تحسب الأداة بصمة SHA-256 لكل ملف قبل نسخه وتتحقق منه بعد النسخ، وتحفظ بيان JSON لكل لقطة يمكن فحصه لاحقًا قبل الاستعادة.
-
-### لماذا هذا المشروع؟
-الهدف هو جعل النسخ الاحتياطي واضحًا وقابلًا للتدقيق: أوامر صريحة، تخزين محلي، تحقق من سلامة البيانات، وعدم استبدال ملفات الاستعادة الموجودة إلا بموافقة المستخدم.
-
-### المميزات
-- لقطات زمنية مستقلة لا تعدّل النسخ السابقة.
-- تحقق SHA-256 أثناء إنشاء النسخة.
-- أمر `verify` لكشف الملفات المفقودة أو المتغيرة داخل النسخة الاحتياطية.
-- رفض استعادة لقطة تالفة تلقائيًا.
-- حماية الملفات الموجودة في وجهة الاستعادة افتراضيًا.
-- كتابة آمنة أثناء الاستعادة باستخدام ملف مؤقت ثم الاستبدال الذري.
-- تجاهل الملفات المخفية افتراضيًا مع خيار تضمينها.
-- عدم اتباع الروابط الرمزية.
-- منع تداخل مجلد المصدر مع مستودع النسخ لتجنب النسخ الدائري.
-- مخرجات JSON وواجهة Python برمجية صغيرة.
-- لا اتصال بالإنترنت ولا حسابات ولا تتبع ولا مفاتيح سرية.
-
-### المتطلبات والتثبيت
-يتطلب Python 3.10 أو أحدث.
-
-```bash
-git clone https://github.com/rad03i2/backup-sentinel.git
-cd backup-sentinel
-python -m pip install .
-```
-
-للتطوير والاختبار:
+Development setup:
 
 ```bash
 python -m pip install -e ".[dev]"
@@ -175,58 +152,80 @@ ruff check .
 pytest
 ```
 
-### الاستخدام
-إنشاء لقطة:
+The current CI workflow runs Ruff and Pytest across:
 
-```bash
-backup-sentinel create ./important ./my-backups
+| Operating system | Python versions |
+|---|---|
+| Ubuntu | 3.10 · 3.12 · 3.13 |
+| Windows | 3.10 · 3.12 · 3.13 |
+| macOS | 3.10 · 3.12 · 3.13 |
+
+The test suite covers the core backup path, hidden-file handling, tamper detection, refusal to restore corrupted data, overwrite protection, overlap rejection, and manifest validity.
+
+## Current boundaries
+
+Backup Sentinel currently creates full local copies. It does **not** currently provide:
+
+- incremental or deduplicated storage;
+- compression;
+- built-in encryption;
+- remote or cloud transport;
+- a scheduler;
+- automatic retention pruning;
+- a graphical interface.
+
+Future ideas are kept separate in [ROADMAP.md](ROADMAP.md) so planned work is not presented as existing behavior.
+
+## Repository map
+
+```text
+backup-sentinel/
+├── assets/
+│   ├── project-cover.svg
+│   └── project-logo.svg
+├── docs/
+│   ├── ARCHITECTURE.md
+│   └── BRAND.md
+├── src/backup_sentinel/
+│   ├── __init__.py
+│   ├── cli.py
+│   └── core.py
+├── tests/
+│   └── test_backup.py
+├── .github/
+│   ├── ISSUE_TEMPLATE/
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   └── workflows/ci.yml
+├── README_EN.md
+├── README_AR.md
+├── ROADMAP.md
+├── CHANGELOG.md
+├── SECURITY.md
+├── CONTRIBUTING.md
+└── LICENSE
 ```
 
-عرض اللقطات:
+## Documentation
 
-```bash
-backup-sentinel list ./my-backups
-```
+| Document | Use it for |
+|---|---|
+| [README_EN.md](README_EN.md) | Complete English usage guide |
+| [README_AR.md](README_AR.md) | الدليل العربي الكامل |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, snapshot format, and safety invariants |
+| [docs/BRAND.md](docs/BRAND.md) | Visual identity and asset rules |
+| [SECURITY.md](SECURITY.md) | Security model and reporting |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution workflow |
+| [ROADMAP.md](ROADMAP.md) | Clearly labeled future ideas |
+| [CHANGELOG.md](CHANGELOG.md) | Notable project changes |
 
-فحص سلامة لقطة:
+---
 
-```bash
-backup-sentinel verify ./my-backups <snapshot-id>
-```
+<div align="center">
 
-استعادة لقطة:
+### Built by رضوان عبدالهادي
 
-```bash
-backup-sentinel restore ./my-backups <snapshot-id> ./restored
-```
+**Radwan Abd alhady Ahmed · [@rad03i2](https://github.com/rad03i2)**
 
-لن تستبدل الأداة ملفًا موجودًا في وجهة الاستعادة إلا عند إضافة `--overwrite` صراحةً. ولتضمين الملفات المخفية أثناء إنشاء النسخة استخدم `--include-hidden`.
+<sub>Backup integrity first. Restore only after verification.</sub>
 
-### الإعدادات وبنية التخزين
-لا تحتاج الأداة إلى متغيرات بيئة أو ملف `.env`. تُحفظ كل لقطة تحت `snapshots/<snapshot-id>/` وبداخلها `manifest.json` ومجلد `data/` الذي يحافظ على المسارات النسبية الأصلية.
-
-### هيكل المشروع
-الكود الأساسي في `src/backup_sentinel/core.py`، وواجهة الأوامر في `cli.py`، والاختبارات في `tests/test_backup.py`، وإعداد CI في `.github/workflows/ci.yml`.
-
-### الاختبارات
-تغطي الاختبارات إنشاء النسخ، التحقق، الاستعادة، الملفات المخفية، اكتشاف العبث، تعارض ملفات الاستعادة، منع تداخل المسارات، وصحة بيان JSON. ويعمل CI على Linux وWindows وmacOS.
-
-### المعاينة
-المشروع أداة سطر أوامر ولا يحتوي واجهة رسومية. مخرجات JSON هي الواجهة المقصودة للاستخدام البشري والبرمجي.
-
-### الأمان والخصوصية
-كل العمليات محلية. النسخ **غير مشفرة**، لذلك يجب حماية وسيط التخزين بصلاحيات النظام أو تشفير القرص عند الحاجة. SHA-256 يكشف تغير البيانات لكنه لا يمنع مهاجمًا لديه صلاحية تعديل البيانات والبيان معًا. راجع `SECURITY.md`.
-
-### القيود
-النسخ الحالية كاملة وليست incremental أو deduplicated، ولا توجد ميزات سحابية أو ضغط أو تشفير أو جدولة أو حذف تلقائي للنسخ القديمة. وقد تفشل عملية التحقق إذا تغير ملف المصدر أثناء النسخ، وفي هذه الحالة يُنصح بإعادة المحاولة بعد توقف الكتابة.
-
-### التطوير المستقبلي الاختياري
-يمكن مستقبلًا إضافة إزالة التكرار المبنية على المحتوى وسياسات احتفاظ صريحة دون التضحية بنموذج الأمان الحالي.
-
-### المساهمة والترخيص
-راجع `CONTRIBUTING.md`. المشروع مرخص بترخيص MIT الموجود في `LICENSE`.
-
-### المؤلف
-**Radwan Abdulhadi Ahmed**  
-**رضوان عبدالهادي أحمد**  
-GitHub: **@rad03i2**
+</div>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Backup Sentinel logo</title>
+  <desc id="desc">A shield containing layered backup snapshots and a verified check mark.</desc>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#59E39A"/>
+      <stop offset="1" stop-color="#1FA96B"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="#09110E"/>
+  <path d="M256 76 402 128v120c0 112-60 194-146 238-86-44-146-126-146-238V128Z" fill="#0D2018" stroke="url(#g)" stroke-width="14"/>
+  <rect x="154" y="172" width="204" height="66" rx="18" fill="#15392C" stroke="#59E39A" stroke-width="7"/>
+  <rect x="138" y="244" width="236" height="72" rx="20" fill="#10271F" stroke="#2DBF7C" stroke-width="7"/>
+  <circle cx="184" cy="205" r="9" fill="#59E39A"/>
+  <circle cx="176" cy="280" r="9" fill="#F4B740"/>
+  <path d="M211 205h101M207 280h43" stroke="#C8D7D0" stroke-width="12" stroke-linecap="round" opacity=".85"/>
+  <path d="m226 337 30 30 68-78" fill="none" stroke="#59E39A" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="390" cy="118" r="13" fill="#F4B740"/>
+</svg>

@@ -1,14 +1,76 @@
-# Contributing
+# Contributing to Backup Sentinel
 
-Thanks for helping improve Backup Sentinel.
+Thanks for helping improve Backup Sentinel. Contributions should preserve the project's conservative backup and restore behavior.
 
-1. Fork the repository and create a focused branch.
-2. Use Python 3.10+ and install `python -m pip install -e ".[dev]"`.
-3. Keep backup operations conservative: never introduce silent deletion, implicit overwrite, secret collection, or network upload.
-4. Add or update tests for behavioral changes.
-5. Run `ruff check .` and `pytest` before opening a pull request.
-6. Keep documentation aligned with implemented behavior.
+## Development setup
 
-Small, reviewable pull requests are preferred. Bug reports should include the operating system, Python version, command used, expected behavior, and sanitized error output.
+Use Python 3.10 or newer.
 
-Maintainer / Author: Radwan Abdulhadi Ahmed (رضوان عبدالهادي أحمد), GitHub @rad03i2.
+```bash
+git clone https://github.com/rad03i2/backup-sentinel.git
+cd backup-sentinel
+python -m pip install -e ".[dev]"
+```
+
+## Before changing behavior
+
+Backup and restore software should fail safely. Changes must not introduce:
+
+- silent deletion;
+- implicit overwrite;
+- hidden network upload;
+- secret collection;
+- automatic trust of unverified snapshot data;
+- symlink traversal that changes the current safety boundary.
+
+If a proposal intentionally changes one of those boundaries, explain the security impact clearly in the pull request.
+
+## Quality checks
+
+Run:
+
+```bash
+ruff check .
+pytest
+```
+
+Behavior changes should include focused tests. Documentation must describe only implemented behavior and should keep roadmap ideas clearly labeled as future work.
+
+## Pull requests
+
+Prefer small, reviewable pull requests with:
+
+1. a clear problem statement;
+2. the smallest reasonable implementation;
+3. tests for behavioral changes;
+4. documentation updates when user-facing behavior changes;
+5. no unrelated formatting churn.
+
+The pull request template in `.github/PULL_REQUEST_TEMPLATE.md` provides a concise checklist.
+
+## Bug reports
+
+Useful bug reports include:
+
+- operating system;
+- Python version;
+- Backup Sentinel version or commit;
+- exact command used;
+- expected result;
+- actual result;
+- sanitized error output;
+- whether symlinks, hidden files, or existing restore targets were involved.
+
+Never attach private backup data or secrets.
+
+## Style
+
+- Keep the code straightforward and auditable.
+- Prefer standard-library solutions when they remain clear.
+- Keep public behavior compatible unless a change is justified and documented.
+- Preserve JSON output semantics for automation users when possible.
+
+## Maintainer
+
+**رضوان عبدالهادي**  
+**Radwan Abd alhady Ahmed** · [@rad03i2](https://github.com/rad03i2)
